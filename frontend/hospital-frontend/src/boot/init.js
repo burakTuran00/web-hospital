@@ -1,6 +1,6 @@
-import { useAuthStore } from '../stores/auth'
+import {useAuthStore} from '../stores/auth'
 
-export default () => {
+export default async () => {
   const auth = useAuthStore()
-  auth.initUser()
+  await auth.initUser()
 }

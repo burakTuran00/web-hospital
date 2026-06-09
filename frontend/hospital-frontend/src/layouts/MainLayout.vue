@@ -15,9 +15,7 @@
       <q-list>
 
         <template v-if="auth.isAdmin">
-          <q-item dense>
-            <q-item-label class="text-caption" header>YÖNETİM</q-item-label>
-          </q-item>
+          <q-item-label class="text-caption" header>YÖNETİM</q-item-label>
           <q-item v-for="item in adminMenu" :key="item.name"
                   v-ripple :to="{ name: item.name }" active-class="text-primary" clickable>
             <q-item-section avatar>
@@ -28,9 +26,7 @@
         </template>
 
         <template v-else-if="auth.isDoctor">
-          <q-item dense>
-            <q-item-label class="text-caption" header>MENÜ</q-item-label>
-          </q-item>
+          <q-item-label class="text-caption" header>MENÜ</q-item-label>
           <q-item v-for="item in doctorMenu" :key="item.name"
                   v-ripple :to="{ name: item.name }" active-class="text-primary" clickable>
             <q-item-section avatar>
@@ -41,9 +37,7 @@
         </template>
 
         <template v-else-if="auth.isPatient">
-          <q-item dense>
-            <q-item-label class="text-caption" header>MENÜ</q-item-label>
-          </q-item>
+          <q-item-label class="text-caption" header>MENÜ</q-item-label>
           <q-item v-for="item in patientMenu" :key="item.name"
                   v-ripple :to="{ name: item.name }" active-class="text-primary" clickable>
             <q-item-section avatar>
@@ -85,11 +79,9 @@ const adminMenu = [
 
 const doctorMenu = [
   {name: 'doctor-dashboard', label: 'Dashboard', icon: 'dashboard'},
-  {name: 'doctor-hospitals', label: 'Hastaneler', icon: 'local_hospital'},
-  {name: 'doctor-departments', label: 'Departmanlar', icon: 'apartment'},
-  {name: 'doctor-patients', label: 'Hastalar', icon: 'people'},
-  {name: 'doctor-appointments', label: 'Randevular', icon: 'event'},
-  {name: 'doctor-prescriptions', label: 'Reçeteler', icon: 'description'}
+  {name: 'doctor-appointments', label: 'Randevularım', icon: 'event'},
+  {name: 'doctor-patients', label: 'Hastalarım', icon: 'people'},
+  {name: 'doctor-prescriptions', label: 'Reçetelerim', icon: 'description'}
 ]
 
 const patientMenu = [

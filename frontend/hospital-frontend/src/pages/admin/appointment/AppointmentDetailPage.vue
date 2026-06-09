@@ -78,6 +78,12 @@
                   <q-item-label>{{ apt.cancelReason }}</q-item-label>
                 </q-item-section>
               </q-item>
+              <q-item v-if="apt.postponeReason">
+                <q-item-section>
+                  <q-item-label caption>Erteleme Gerekçesi</q-item-label>
+                  <q-item-label>{{ apt.postponeReason }}</q-item-label>
+                </q-item-section>
+              </q-item>
               <q-item v-if="apt.doctorNotes">
                 <q-item-section>
                   <q-item-label caption>Doktor Notu</q-item-label>
@@ -93,13 +99,14 @@
       <div class="col-12 col-md-6">
         <q-card bordered flat>
           <q-card-section>
-            <div class="text-subtitle2">Reçeteler ({{ prescStore.patientPrescriptions.length }})</div>
+            <div class="text-subtitle2">Reçeteler ({{ prescriptions.length }})</div>
           </q-card-section>
           <q-separator/>
           <q-table
             :columns="prescColumns"
-            :rows="prescStore.patientPrescriptions"
-            :rows-per-page-options="[5, 10]" flat
+            :rows="prescriptions"
+            :rows-per-page-options="[5, 10]"
+            flat
             no-data-label="Reçete yok"
             row-key="id"
           >
@@ -121,8 +128,8 @@
         <q-separator/>
         <q-card-section>
           <q-form ref="cancelFormRef" @submit="handleCancel">
-            <q-input v-model="cancelReason" :rules="[v => !!v || 'Zorunlu']" label="İptal Gerekçesi *" outlined rows="3"
-                     type="textarea"/>
+            <q-input v-model="cancelReason" :rules="[v => !!v || 'Zorunlu']"
+                     label="İptal Gerekçesi *" outlined rows="3" type="textarea"/>
           </q-form>
         </q-card-section>
         <q-separator/>
@@ -184,18 +191,17 @@
 </template>
 
 <script setup>
-import {computed, onMounted, ref} from 'vue'
+import {computed, nextTick, onMounted, ref} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import {useQuasar} from 'quasar'
-import {useAppointmentStore} from '../../stores/appointment'
-import {usePrescriptionStore} from '../../stores/prescription'
-import {useMedicineStore} from '../../stores/medicine'
+import {useAppointmentStore} from 'stores/appointment.js'
+import {useMedicineStore} from 'stores/medicine.js'
+import {prescriptionApi} from '../../../api/prescription.js'
 
 const route = useRoute()
 const router = useRouter()
 const $q = useQuasar()
 const store = useAppointmentStore()
-const prescStore = usePrescriptionStore()
 const medStore = useMedicineStore()
 
 const cancelDialog = ref(false)
@@ -204,11 +210,10 @@ const saving = ref(false)
 const cancelReason = ref('')
 const cancelFormRef = ref(null)
 const completeFormRef = ref(null)
+const prescriptions = ref([])
 
 const apt = computed(() => store.appointments.find(a => a.id === Number(route.params.id)))
-
 const medicineOptions = computed(() => medStore.medicines.map(m => ({label: m.name, value: m.id})))
-
 const completeForm = ref({notes: '', prescriptions: []})
 
 const prescColumns = [
@@ -219,23 +224,34 @@ const prescColumns = [
 ]
 
 const formatDate = (v) => v ? new Date(v).toLocaleString('tr-TR') : '-'
-const statusLabel = (v) => ({SCHEDULED: 'Planlandı', COMPLETED: 'Tamamlandı', CANCELLED: 'İptal'})[v] || v
+const statusLabel = (v) => ({
+  SCHEDULED: 'Planlandı',
+  COMPLETED: 'Tamamlandı',
+  CANCELLED: 'İptal',
+  POSTPONED: 'Ertelendi'
+})[v] || v
 const prescStatusLabel = (v) => ({ACTIVE: 'Aktif', USED: 'Kullanıldı', EXPIRED: 'Süresi Doldu'})[v] || v
 
 const openCancelDialog = () => {
-  cancelReason.value = '';
+  cancelReason.value = ''
   cancelDialog.value = true
 }
+
 const openCompleteDialog = () => {
-  completeForm.value = {notes: '', prescriptions: []};
+  completeForm.value = {notes: '', prescriptions: []}
   completeDialog.value = true
 }
 
 const addPrescription = () => completeForm.value.prescriptions.push({
   patientId: apt.value?.patientId || null,
-  medicineId: null, issueDate: new Date().toISOString().split('T')[0],
-  expiryDate: '', dosageInstruction: '', durationDays: 30, quantity: 1
+  medicineId: null,
+  issueDate: new Date().toISOString().split('T')[0],
+  expiryDate: '',
+  dosageInstruction: '',
+  durationDays: 30,
+  quantity: 1
 })
+
 const removePrescription = (i) => completeForm.value.prescriptions.splice(i, 1)
 
 const handleCancel = async () => {
@@ -257,6 +273,11 @@ const handleComplete = async () => {
     await store.complete(apt.value.id, apt.value.doctorId, completeForm.value)
     $q.notify({type: 'positive', message: 'Tamamlandı.', position: 'top-right'})
     completeDialog.value = false
+    // Reçeteleri yenile
+    if (apt.value?.patientId) {
+      const {data} = await prescriptionApi.getByPatient(apt.value.patientId)
+      prescriptions.value = data
+    }
   } catch (err) {
     $q.notify({type: 'negative', message: err.response?.data?.message || 'Hata.', position: 'top-right'})
   } finally {
@@ -266,7 +287,8 @@ const handleComplete = async () => {
 
 const handleDelete = () => {
   $q.dialog({
-    title: 'Sil', message: 'Emin misiniz?',
+    title: 'Sil',
+    message: 'Emin misiniz?',
     cancel: {label: 'Hayır', flat: true},
     ok: {label: 'Evet', flat: true, color: 'negative'}
   }).onOk(async () => {
@@ -281,12 +303,15 @@ const handleDelete = () => {
 }
 
 onMounted(async () => {
-  await Promise.all([
-    store.fetchAll(),
-    medStore.fetchAll()
-  ])
+  await Promise.all([store.fetchAll(), medStore.fetchAll()])
+  await nextTick()
   if (apt.value?.patientId) {
-    await prescStore.fetchByPatient(apt.value.patientId)
+    try {
+      const {data} = await prescriptionApi.getByPatient(apt.value.patientId)
+      prescriptions.value = data
+    } catch (err) {
+      console.error('Reçeteler yüklenemedi:', err)
+    }
   }
 })
 </script>

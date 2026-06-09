@@ -195,9 +195,9 @@
 import {computed, onMounted, ref} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import {useQuasar} from 'quasar'
-import {usePatientStore} from '../../stores/patient'
-import {useAppointmentStore} from '../../stores/appointment'
-import {usePrescriptionStore} from '../../stores/prescription'
+import {usePatientStore} from 'stores/patient.js'
+import {useAppointmentStore} from 'stores/appointment.js'
+import {usePrescriptionStore} from 'stores/prescription.js'
 
 const route = useRoute()
 const router = useRouter()

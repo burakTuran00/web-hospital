@@ -1,66 +1,73 @@
-import { defineStore } from 'pinia'
-import { appointmentApi } from '../api/appointment'
+import {defineStore} from 'pinia'
+import {appointmentApi} from '../api/appointment'
 
 export const useAppointmentStore = defineStore('appointment', {
   state: () => ({
-    appointments:        [],
-    doctorAppointments:  [],
+    appointments: [],
+    doctorAppointments: [],
     patientAppointments: [],
-    loading:             false
+    loading: false
   }),
 
   actions: {
-    async fetchAll () {
+    async fetchAll() {
       this.loading = true
       try {
-        const { data } = await appointmentApi.getAll()
+        const {data} = await appointmentApi.getAll()
         this.appointments = data
       } finally {
         this.loading = false
       }
     },
 
-    async fetchByDoctor (doctorId) {
+    async fetchByDoctor(doctorId) {
       this.loading = true
       try {
-        const { data } = await appointmentApi.getByDoctor(doctorId)
+        const {data} = await appointmentApi.getByDoctor(doctorId)
         this.doctorAppointments = data
       } finally {
         this.loading = false
       }
     },
 
-    async fetchByPatient (patientId) {
+    async fetchByPatient(patientId) {
       this.loading = true
       try {
-        const { data } = await appointmentApi.getByPatient(patientId)
+        const {data} = await appointmentApi.getByPatient(patientId)
         this.patientAppointments = data
       } finally {
         this.loading = false
       }
     },
 
-    async book (payload) {
-      const { data } = await appointmentApi.book(payload)
+    async postpone(id, doctorId, payload) {
+      const {data} = await appointmentApi.postpone(id, doctorId, payload)
+      const i = this.doctorAppointments.findIndex(a => a.id === id)
+      if (i !== -1) this.doctorAppointments.splice(i, 1, data)
+      return data
+    },
+
+    async book(payload) {
+      const {data} = await appointmentApi.book(payload)
       this.appointments.unshift(data)
       return data
     },
 
-    async cancel (id, patientId, reason) {
-      const { data } = await appointmentApi.cancel(id, patientId, { cancelReason: reason })
+    async cancel(id, patientId, reason) {
+      const {data} = await appointmentApi.cancel(id, patientId, {cancelReason: reason})
       const i = this.appointments.findIndex(a => a.id === id)
       if (i !== -1) this.appointments.splice(i, 1, data)
       return data
     },
 
-    async complete (id, doctorId, payload) {
-      const { data } = await appointmentApi.complete(id, doctorId, payload)
+    async complete(id, doctorId, payload) {
+      const {data} = await appointmentApi.complete(id, doctorId, payload)
       const i = this.appointments.findIndex(a => a.id === id)
       if (i !== -1) this.appointments.splice(i, 1, data)
       return data
     },
 
-    async delete (id) {
+    async delete(id) {
       await appointmentApi.delete(id)
       this.appointments = this.appointments.filter(a => a.id !== id)
     }
